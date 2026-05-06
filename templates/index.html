@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Chat IA Local</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="app">
+    <div class="chat-card">
+
+        <div class="chat-header">
+            <div class="avatar">IA</div>
+
+            <div>
+                <h1>Chat IA Local</h1>
+                <p>Conectado a Ollama · phi4-mini</p>
+            </div>
+
+            <button class="clear-btn" onclick="clearChat()">Limpiar</button>
+        </div>
+
+        <div id="chat-box" class="chat-box">
+            <div class="message bot">
+                <div class="bubble">
+                    Hola 👋 Soy tu asistente local. ¿En qué te ayudo hoy?
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input 
+                type="text" 
+                id="message-input" 
+                placeholder="Escribe tu mensaje..."
+                onkeydown="handleKey(event)"
+                autocomplete="off"
+            >
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+async function sendMessage() {
+    const input = document.getElementById("message-input");
+    const chatBox = document.getElementById("chat-box");
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    chatBox.innerHTML += `
+        <div class="message user">
+            <div class="bubble">${message}</div>
+        </div>
+    `;
+
+    input.value = "";
+
+    const botMessage = document.createElement("div");
+    botMessage.className = "message bot";
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = "";
+
+    botMessage.appendChild(bubble);
+    chatBox.appendChild(botMessage);
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    try {
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message: message })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { value, done } = await reader.read();
+
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            bubble.textContent += chunk;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+    } catch (error) {
+        bubble.textContent = "Error conectando con el servidor.";
+    }
+}
+
+function handleKey(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
+async function clearChat() {
+    const chatBox = document.getElementById("chat-box");
+
+    await fetch("/clear", {
+        method: "POST"
+    });
+
+    chatBox.innerHTML = `
+        <div class="message bot">
+            <div class="bubble">
+                Chat reiniciado. ¿En qué te ayudo ahora? 👋
+            </div>
+        </div>
+    `;
+}
+</script>
+
+</body>
+</html>
