@@ -26,3 +26,5 @@ Aplicación web tipo ChatGPT construida con Flask + Ollama, que permite conversa
 ---
 
 ## 📂 Estructura del proyecto
+
+Cambios desde dev editor
